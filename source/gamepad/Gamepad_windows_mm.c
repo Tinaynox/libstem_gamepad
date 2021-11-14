@@ -45,11 +45,11 @@ static struct Gamepad_device ** devices = NULL;
 static unsigned int numDevices = 0;
 static unsigned int nextDeviceID = 0;
 
-static bool inited = false;
+static gamepad_bool inited = gamepad_false;
 
 void Gamepad_init() {
 	if (!inited) {
-		inited = true;
+		inited = gamepad_true;
 		Gamepad_detectDevices();
 	}
 }
@@ -75,7 +75,7 @@ void Gamepad_shutdown() {
 		free(devices);
 		devices = NULL;
 		numDevices = 0;
-		inited = false;
+		inited = gamepad_false;
 	}
 }
 
@@ -146,7 +146,7 @@ void Gamepad_detectDevices() {
 	unsigned int deviceIndex, deviceIndex2;
 	JOYINFOEX info;
 	JOYCAPS caps;
-	bool duplicate;
+	gamepad_bool duplicate;
 	struct Gamepad_device * deviceRecord;
 	struct Gamepad_devicePrivate * deviceRecordPrivate;
 	UINT joystickID;
@@ -164,10 +164,10 @@ void Gamepad_detectDevices() {
 		if (joyGetPosEx(joystickID, &info) == JOYERR_NOERROR &&
 		    joyGetDevCaps(joystickID, &caps, sizeof(JOYCAPS)) == JOYERR_NOERROR) {
 			
-			duplicate = false;
+			duplicate = gamepad_false;
 			for (deviceIndex2 = 0; deviceIndex2 < numDevices; deviceIndex2++) {
 				if (((struct Gamepad_devicePrivate *) devices[deviceIndex2]->privateData)->joystickID == joystickID) {
-					duplicate = true;
+					duplicate = gamepad_true;
 					break;
 				}
 			}
@@ -183,7 +183,7 @@ void Gamepad_detectDevices() {
 			deviceRecord->numAxes = caps.wNumAxes + ((caps.wCaps & JOYCAPS_HASPOV) ? 2 : 0);
 			deviceRecord->numButtons = caps.wNumButtons;
 			deviceRecord->axisStates = calloc(sizeof(float), deviceRecord->numAxes);
-			deviceRecord->buttonStates = calloc(sizeof(bool), deviceRecord->numButtons);
+			deviceRecord->buttonStates = calloc(sizeof(gamepad_bool), deviceRecord->numButtons);
 			devices = realloc(devices, sizeof(struct Gamepad_device *) * (numDevices + 1));
 			devices[numDevices++] = deviceRecord;
 			
@@ -265,7 +265,7 @@ static void handleAxisChange(struct Gamepad_device * device, int axisIndex, DWOR
 }
 
 static void handleButtonChange(struct Gamepad_device * device, DWORD lastValue, DWORD value) {
-	bool down;
+	gamepad_bool down;
 	unsigned int buttonIndex;
 	
 	for (buttonIndex = 0; buttonIndex < device->numButtons; buttonIndex++) {
@@ -338,7 +338,7 @@ static void handlePOVChange(struct Gamepad_device * device, DWORD lastValue, DWO
 
 void Gamepad_processEvents() {
 	unsigned int deviceIndex;
-	static bool inProcessEvents;
+	static gamepad_bool inProcessEvents;
 	JOYINFOEX info;
 	MMRESULT result;
 	struct Gamepad_device * device;
@@ -348,7 +348,7 @@ void Gamepad_processEvents() {
 		return;
 	}
 	
-	inProcessEvents = true;
+	inProcessEvents = gamepad_true;
 	for (deviceIndex = 0; deviceIndex < numDevices; deviceIndex++) {
 		device = devices[deviceIndex];
 		devicePrivate = device->privateData;
@@ -395,6 +395,6 @@ void Gamepad_processEvents() {
 			devicePrivate->lastState = info;
 		}
 	}
-	inProcessEvents = false;
+	inProcessEvents = gamepad_false;
 }
 
