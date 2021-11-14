@@ -331,6 +331,16 @@ DEFINE_GUID(IID_X360WirelessGamepad, MAKELONG(0x045E, 0x028E),0x0000,0x0000,0x00
 static PRAWINPUTDEVICELIST rawDevList = NULL;
 static UINT rawDevListCount = 0;
 
+void clearRawDevList()
+{
+	if (rawDevList)
+	{
+		free(rawDevList);
+		rawDevList = NULL;
+		rawDevListCount = 0;
+	}
+}
+
 static bool isXInputDevice(const GUID * pGuidProductFromDirectInput) {
 	static const GUID * s_XInputProductGUID[] = {
 		&IID_ValveStreamingGamepad,
@@ -759,6 +769,8 @@ static void removeDevice(unsigned int deviceIndex) {
 	for (; deviceIndex < numDevices; deviceIndex++) {
 		devices[deviceIndex] = devices[deviceIndex + 1];
 	}
+    
+    clearRawDevList();
 }
 
 void Gamepad_detectDevices() {
@@ -997,7 +1009,7 @@ void Gamepad_processEvents() {
 					result = IDirectInputDevice8_GetDeviceState(devicePrivate->deviceInterface, sizeof(DIJOYSTATE2), &state);
 				}
 				
-				if (result != DI_OK) {
+				if (!SUCCEEDED(result)) {
 					removeDevice(deviceIndex);
 					deviceIndex--;
 					continue;
