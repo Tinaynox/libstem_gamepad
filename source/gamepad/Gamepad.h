@@ -30,6 +30,10 @@ extern "C" {
 #define gamepad_true 1
 #define gamepad_false 0
 
+#define gamepad_log_default 0
+#define gamepad_log_warning 1
+#define gamepad_log_error 2
+
 
 struct Gamepad_device {
 	// Unique device identifier for application session, starting at 0 for the first device attached and
@@ -124,6 +128,9 @@ void Gamepad_buttonUpFunc(void (* callback)(struct Gamepad_device * device, unsi
    thread from which Gamepad_processEvents() was called. Calling this function with a NULL
    argument will stop any previously registered callback from being called subsequently.  */
 void Gamepad_axisMoveFunc(void (* callback)(struct Gamepad_device * device, unsigned int axisID, float value, float lastValue, double timestamp, void * context), void * context);
+
+/* Registers a function to be called on any lib log */
+void Gamepad_logFunc(void(*callback)(int priority, char const * format, ...));
 
 #ifdef __cplusplus
 }

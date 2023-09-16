@@ -118,17 +118,21 @@ void Gamepad_init() {
 		HMODULE module;
 		HRESULT (WINAPI * DirectInput8Create_proc)(HINSTANCE, DWORD, REFIID, LPVOID *, LPUNKNOWN);
 		
-		module = LoadLibrary("XInput1_4.dll");
+        char const* moduleName = "XInput1_4.dll";
+		module = LoadLibrary(moduleName);
 		if (module == NULL) {
-			module = LoadLibrary("XInput1_3.dll");
+            moduleName = "XInput1_3.dll";
+			module = LoadLibrary(moduleName);
 		}
 		if (module == NULL) {
+            moduleName = "bin\\XInput1_3.dll";
 			module = LoadLibrary("bin\\XInput1_3.dll");
 		}
 		if (module == NULL) {
-			fprintf(stderr, "Gamepad_init couldn't load XInput1_4.dll or XInput1_3.dll; proceeding with DInput only\n");
+			Gamepad_logCallback(gamepad_log_error, "Gamepad_init couldn't load XInput1_4.dll or XInput1_3.dll; proceeding with DInput only\n");
 			xInputAvailable = gamepad_false;
 		} else {
+            Gamepad_logCallback(gamepad_log_default, "Gamepad_init XInput loaded: %s\n", moduleName);
 			xInputAvailable = gamepad_true;
 			XInputGetStateEx_proc = (DWORD (WINAPI *)(DWORD, XINPUT_STATE_EX *)) GetProcAddress(module, (LPCSTR) 100);
 			XInputGetState_proc = (DWORD (WINAPI *)(DWORD, XINPUT_STATE *)) GetProcAddress(module, "XInputGetState");
@@ -138,16 +142,21 @@ void Gamepad_init() {
 		//result = DirectInput8Create(GetModuleHandle(NULL), DIRECTINPUT_VERSION, &IID_IDirectInput8, (void **) &directInputInterface, NULL);
 		// Calling DirectInput8Create directly crashes in 64-bit builds for some reason. Loading it with GetProcAddress works though!
 		
+        moduleName = "DINPUT8.dll";
 		module = LoadLibrary("DINPUT8.dll");
 		if (module == NULL) {
-			fprintf(stderr, "Gamepad_init fatal error: Couldn't load DINPUT8.dll\n");
+			Gamepad_logCallback(gamepad_log_error, "Gamepad_init fatal error: Couldn't load DINPUT8.dll\n");
 			abort();
 		}
+        else {
+            Gamepad_logCallback(gamepad_log_default, "Gamepad_init DInput loaded: %s\n", moduleName);
+        }
+
 		DirectInput8Create_proc = (HRESULT (WINAPI *)(HINSTANCE, DWORD, REFIID, LPVOID *, LPUNKNOWN)) GetProcAddress(module, "DirectInput8Create");
 		result = DirectInput8Create_proc(GetModuleHandle(NULL), DIRECTINPUT_VERSION, &IID_IDirectInput8, (void **) &directInputInterface, NULL);
 		
 		if (result != DI_OK) {
-			fprintf(stderr, "Warning: DirectInput8Create returned 0x%X\n", (unsigned int) result);
+			Gamepad_logCallback(gamepad_log_warning, "DirectInput8Create returned 0x%X\n", (unsigned int) result);
 		}
 		
 		inited = gamepad_true;
@@ -464,7 +473,7 @@ static BOOL CALLBACK enumAxesCallback(LPCDIDEVICEOBJECTINSTANCE instance, LPVOID
 		
 		result = IDirectInputDevice8_SetProperty(deviceRecordPrivate->deviceInterface, DIPROP_RANGE, &range.diph);
 		if (result != DI_OK) {
-			fprintf(stderr, "Warning: IDIrectInputDevice8_SetProperty returned 0x%X\n", (unsigned int) result);
+			Gamepad_logCallback(gamepad_log_warning, "Warning: IDIrectInputDevice8_SetProperty returned 0x%X\n", (unsigned int) result);
 		}
 		
 		deadZone.diph.dwSize = sizeof(deadZone);
@@ -474,7 +483,7 @@ static BOOL CALLBACK enumAxesCallback(LPCDIDEVICEOBJECTINSTANCE instance, LPVOID
 		deadZone.dwData = 0;
 		result = IDirectInputDevice8_SetProperty(deviceRecordPrivate->deviceInterface, DIPROP_DEADZONE, &deadZone.diph);
 		if (result != DI_OK) {
-			fprintf(stderr, "Warning: IDIrectInputDevice8_SetProperty returned 0x%X\n", (unsigned int) result);
+			Gamepad_logCallback(gamepad_log_warning, "Warning: IDIrectInputDevice8_SetProperty returned 0x%X\n", (unsigned int) result);
 		}
 	}
 	return DIENUM_CONTINUE;
@@ -694,22 +703,22 @@ static BOOL CALLBACK enumDevicesCallback(const DIDEVICEINSTANCE * instance, LPVO
 	
 	result = IDirectInput8_CreateDevice(directInputInterface, &instance->guidInstance, &diDevice, NULL);
 	if (result != DI_OK) {
-		fprintf(stderr, "Warning: IDirectInput8_CreateDevice returned 0x%X\n", (unsigned int) result);
+		Gamepad_logCallback(gamepad_log_warning, "Warning: IDirectInput8_CreateDevice returned 0x%X\n", (unsigned int) result);
 	}
 	result = IDirectInputDevice8_QueryInterface(diDevice, &IID_IDirectInputDevice8, (LPVOID *) &di8Device);
 	if (result != DI_OK) {
-		fprintf(stderr, "Warning: IDirectInputDevice8_QueryInterface returned 0x%X\n", (unsigned int) result);
+		Gamepad_logCallback(gamepad_log_warning, "Warning: IDirectInputDevice8_QueryInterface returned 0x%X\n", (unsigned int) result);
 	}
 	IDirectInputDevice8_Release(diDevice);
 	
 	result = IDirectInputDevice8_SetCooperativeLevel(di8Device, GetActiveWindow(), DISCL_NONEXCLUSIVE | DISCL_BACKGROUND);
 	if (result != DI_OK) {
-		fprintf(stderr, "Warning: IDirectInputDevice8_SetCooperativeLevel returned 0x%X\n", (unsigned int) result);
+		Gamepad_logCallback(gamepad_log_warning, "Warning: IDirectInputDevice8_SetCooperativeLevel returned 0x%X\n", (unsigned int) result);
 	}
 	
 	result = IDirectInputDevice8_SetDataFormat(di8Device, &c_dfDIJoystick2);
 	if (result != DI_OK) {
-		fprintf(stderr, "Warning: IDirectInputDevice8_SetDataFormat returned 0x%X\n", (unsigned int) result);
+		Gamepad_logCallback(gamepad_log_warning, "Warning: IDirectInputDevice8_SetDataFormat returned 0x%X\n", (unsigned int) result);
 	}
 	
 	bufferSizeProp.diph.dwSize = sizeof(DIPROPDWORD);
@@ -721,7 +730,7 @@ static BOOL CALLBACK enumDevicesCallback(const DIDEVICEINSTANCE * instance, LPVO
 	if (result == DI_POLLEDDEVICE) {
 		buffered = gamepad_false;
 	} else if (result != DI_OK) {
-		fprintf(stderr, "Warning: IDirectInputDevice8_SetProperty returned 0x%X\n", (unsigned int) result);
+		Gamepad_logCallback(gamepad_log_warning, "Warning: IDirectInputDevice8_SetProperty returned 0x%X\n", (unsigned int) result);
 	}
 	
 	deviceRecord = malloc(sizeof(struct Gamepad_device));
@@ -785,7 +794,7 @@ void Gamepad_detectDevices() {
 	
 	result = IDirectInput_EnumDevices(directInputInterface, DI8DEVCLASS_GAMECTRL, enumDevicesCallback, NULL, DIEDFL_ALLDEVICES);
 	if (result != DI_OK) {
-		fprintf(stderr, "Warning: IDirectInput_EnumDevices returned 0x%X\n", (unsigned int) result);
+		Gamepad_logCallback(gamepad_log_warning, "Warning: IDirectInput_EnumDevices returned 0x%X\n", (unsigned int) result);
 	}
 	
 	if (xInputAvailable) {
