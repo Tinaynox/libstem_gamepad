@@ -789,6 +789,7 @@ void Gamepad_detectDevices() {
 	unsigned int playerIndex, deviceIndex;
 	
 	if (!inited) {
+        Gamepad_logCallback(gamepad_log_warning, "Warning: library is not inited!\n");
 		return;
 	}
 	
