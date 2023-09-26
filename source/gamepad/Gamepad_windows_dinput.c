@@ -97,20 +97,20 @@ struct Gamepad_devicePrivate {
 static struct Gamepad_device ** devices = NULL;
 static unsigned int numDevices = 0;
 static unsigned int nextDeviceID = 0;
-static struct Gamepad_device * registeredXInputDevices[4];
+static struct Gamepad_device * registeredXInputDevices[4] = { NULL, NULL, NULL, NULL };
 static const char * xInputDeviceNames[4] = {
 	"XInput Controller 1",
 	"XInput Controller 2",
 	"XInput Controller 3",
 	"XInput Controller 4"
 };
-static DWORD (WINAPI * XInputGetStateEx_proc)(DWORD dwUserIndex, XINPUT_STATE_EX * pState);
-static DWORD (WINAPI * XInputGetState_proc)(DWORD dwUserIndex, XINPUT_STATE * pState);
-static DWORD (WINAPI * XInputGetCapabilities_proc)(DWORD dwUserIndex, DWORD dwFlags, XINPUT_CAPABILITIES * pCapabilities);
+static DWORD (WINAPI * XInputGetStateEx_proc)(DWORD dwUserIndex, XINPUT_STATE_EX * pState) = NULL;
+static DWORD (WINAPI * XInputGetState_proc)(DWORD dwUserIndex, XINPUT_STATE * pState) = NULL;
+static DWORD (WINAPI * XInputGetCapabilities_proc)(DWORD dwUserIndex, DWORD dwFlags, XINPUT_CAPABILITIES * pCapabilities) = NULL;
 
 static LPDIRECTINPUT directInputInterface;
 static gamepad_bool inited = gamepad_false;
-static gamepad_bool xInputAvailable;
+static gamepad_bool xInputAvailable = gamepad_false;
 
 void Gamepad_init() {
 	if (!inited) {
@@ -801,6 +801,10 @@ void Gamepad_detectDevices() {
 	if (xInputAvailable) {
 		for (playerIndex = 0; playerIndex < 4; playerIndex++) {
 			xResult = XInputGetCapabilities_proc(playerIndex, 0, &capabilities);
+            Gamepad_logCallback(
+                gamepad_log_default,
+                "XInputGetCapabilities playerIndex=%d result=%d registeredXInputDevice=%d\n",
+                playerIndex, (int)xResult, registeredXInputDevices[playerIndex] == NULL ? 0 : 1);
 			if (xResult == ERROR_SUCCESS && registeredXInputDevices[playerIndex] == NULL) {
 				struct Gamepad_device * deviceRecord;
 				struct Gamepad_devicePrivate * deviceRecordPrivate;
