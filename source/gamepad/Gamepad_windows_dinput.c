@@ -190,6 +190,10 @@ void Gamepad_shutdown() {
 		}
 		free(devices);
 		devices = NULL;
+
+        for (unsigned int playerIndex = 0; playerIndex < 4; playerIndex++)
+            registeredXInputDevices[playerIndex] = NULL;
+
 		numDevices = 0;
 		inited = gamepad_false;
 	}
