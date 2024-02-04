@@ -26,7 +26,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-static GamepadLogFuncDefault(int priority, char const * format, ...) {
+static void GamepadLogFuncDefault(int priority, char const * format, ...) {
     va_list args;
     va_start(args, format);
 
